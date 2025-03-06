@@ -157,11 +157,20 @@ def download_file(filename):
         return jsonify({"error": "File download failed"}), 500
 
 
-# Configure app for deployment
 if __name__ == "__main__":
     # Start the email scheduler when app starts
     email_service.start_scheduler()
 
-    # Get port from environment variable (for cloud deployment)
-    port = int(os.getenv("PORT", 5000))
+    # Get port from environment variable with a fallback
+    port = os.getenv("PORT", None)
+    if port is None:
+        port = 5000  # Default port if not specified
+    else:
+        try:
+            port = int(port)
+        except ValueError:
+            print(f"Invalid PORT value: {port}. Using default port 5000 instead.")
+            port = 5000
+            
+    print(f"Starting server on port {port}")
     app.run(host="0.0.0.0", port=port)
