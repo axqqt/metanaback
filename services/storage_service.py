@@ -3,6 +3,9 @@ import boto3
 from botocore.exceptions import NoCredentialsError
 
 logger = logging.getLogger(__name__)
+from dotenv import load_dotenv
+load_dotenv()  # Load environment variables from a .env file
+
 
 class S3StorageService:
     """Service for handling S3 storage operations"""

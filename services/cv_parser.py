@@ -1,6 +1,8 @@
 import logging
 import PyPDF2
 import docx2txt
+from dotenv import load_dotenv
+load_dotenv()  # Load environment variables from a .env file
 
 logger = logging.getLogger(__name__)
 

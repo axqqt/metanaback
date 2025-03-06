@@ -1,6 +1,9 @@
 import os
 import uuid
 from werkzeug.utils import secure_filename
+from dotenv import load_dotenv
+load_dotenv()  # Load environment variables from a .env file
+
 
 class FileService:
     """Service for handling file operations"""

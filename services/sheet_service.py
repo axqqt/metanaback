@@ -5,6 +5,9 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
 logger = logging.getLogger(__name__)
+from dotenv import load_dotenv
+load_dotenv()  # Load environment variables from a .env file
+
 
 class GoogleSheetService:
     """Service for managing Google Sheets operations"""

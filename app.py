@@ -1,3 +1,9 @@
+from services.email_service import EmailService
+from services.webhook_service import WebhookService
+from services.sheet_service import GoogleSheetService
+from services.storage_service import S3StorageService
+from services.cv_parser import CVParser
+from services.file_service import FileService
 import os
 import uuid
 import logging
@@ -6,13 +12,10 @@ from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 
+from dotenv import load_dotenv
+load_dotenv()  # Load environment variables from a .env file
+
 # Import from our modules
-from services.file_service import FileService
-from services.cv_parser import CVParser
-from services.storage_service import S3StorageService
-from services.sheet_service import GoogleSheetService
-from services.webhook_service import WebhookService
-from services.email_service import EmailService
 
 # Configure logging
 logging.basicConfig(level=logging.INFO,
@@ -44,11 +47,27 @@ s3_service = S3StorageService(
     os.getenv('AWS_SECRET_KEY')
 )
 
-# Configure Google Sheets API
+# Fetch GOOGLE_CREDENTIALS from environment
+google_credentials = os.getenv('GOOGLE_CREDENTIALS')
+
+# Check if the GOOGLE_CREDENTIALS is set and is not empty
+if not google_credentials:
+    raise ValueError(
+        "GOOGLE_CREDENTIALS environment variable is not set or is empty.")
+
+# Parse the credentials string into a dictionary
+try:
+    google_credentials_dict = json.loads(google_credentials)
+except json.JSONDecodeError as e:
+    raise ValueError(f"Failed to decode GOOGLE_CREDENTIALS: {e}")
+
+# Now pass the credentials to GoogleSheetService
 google_sheet_service = GoogleSheetService(
     os.getenv('SPREADSHEET_ID'),
-    json.loads(os.getenv('GOOGLE_CREDENTIALS'))
+    google_credentials=google_credentials_dict
 )
+print(google_credentials)
+
 
 # Initialize webhook service
 webhook_service = WebhookService(WEBHOOK_URL, CANDIDATE_EMAIL)

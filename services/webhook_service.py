@@ -3,6 +3,8 @@ import datetime
 import requests
 
 logger = logging.getLogger(__name__)
+from dotenv import load_dotenv
+load_dotenv()  # Load environment variables from a .env file
 
 class WebhookService:
     """Service for sending webhook notifications"""

@@ -7,6 +7,9 @@ import schedule
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from dotenv import load_dotenv
+load_dotenv()  # Load environment variables from a .env file
+
 
 logger = logging.getLogger(__name__)
 
