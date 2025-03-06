@@ -2,9 +2,18 @@ import logging
 import datetime
 import requests
 from dotenv import load_dotenv
+import os
 
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
-load_dotenv()  # Load environment variables if needed
+
+# Load environment variables
+load_dotenv()
+
 
 class WebhookService:
     """Service for sending webhook notifications"""
@@ -12,16 +21,21 @@ class WebhookService:
     def __init__(self, webhook_url, candidate_email):
         self.webhook_url = webhook_url
         self.candidate_email = candidate_email
-    
+
     def send_notification(self, data, status="testing"):
         """Send webhook notification after processing CV"""
         try:
             payload = {
                 "cv_data": data.get("cv_data", {}),
+                "personal_info": {  # Added required field
+                    "name": data.get("name", ""),
+                    "email": data.get("email", "")
+                },
                 "metadata": {
                     "applicant_name": data.get("name", ""),
                     "email": data.get("email", ""),
-                    "status": status,  # "testing" (during testing) or "prod" (final submission)
+                    # "testing" (during testing) or "prod" (final submission)
+                    "status": status,
                     "cv_processed": True,
                     "processed_timestamp": datetime.datetime.utcnow().isoformat()
                 }
@@ -33,7 +47,8 @@ class WebhookService:
 
             headers = {
                 "Content-Type": "application/json",
-                "X-Candidate-Email": self.candidate_email  # Unique email for submission tracking
+                # Unique email for submission tracking
+                "X-Candidate-Email": self.candidate_email
             }
 
             response = requests.post(
@@ -47,7 +62,8 @@ class WebhookService:
                 logger.info("✅ Webhook successfully sent.")
                 return True
             else:
-                logger.error(f"❌ Webhook failed! Status: {response.status_code}, Response: {response.text}")
+                logger.error(
+                    f"❌ Webhook failed! Status: {response.status_code}, Response: {response.text}")
                 return False
         except requests.exceptions.RequestException as e:
             logger.error(f"❌ Webhook send error: {e}")

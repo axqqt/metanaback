@@ -5,14 +5,14 @@ import threading
 import time
 import schedule
 import os
-import resend as Resend  # Resend API SDK
+import resend
 from dotenv import load_dotenv
 
 logger = logging.getLogger(__name__)
 load_dotenv()  # Load environment variables
 
-# Initialize Resend API
-resend = Resend(os.getenv("RESEND_API_KEY"))
+# Set Resend API Key
+resend.api_key = os.getenv("RESEND_API_KEY")
 
 class EmailService:
     """Service for managing email operations"""
@@ -44,9 +44,9 @@ class EmailService:
     def send_email(self, recipient, name):
         """Send follow-up email using Resend API"""
         try:
-            response = resend.emails.send({
+            response = resend.Emails.send({
                 "from": "Recruiting Team <no-reply@yourdomain.com>",
-                "to": [recipient],
+                "to": recipient,
                 "subject": "Your Application is Under Review",
                 "html": f"""
                 <html>
