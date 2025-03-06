@@ -6,7 +6,6 @@ logger = logging.getLogger(__name__)
 from dotenv import load_dotenv
 load_dotenv()  # Load environment variables from a .env file
 
-
 class S3StorageService:
     """Service for handling S3 storage operations"""
     
@@ -24,9 +23,9 @@ class S3StorageService:
             self.s3_client.upload_file(
                 file_path,
                 self.bucket_name,
-                file_name,
-                ExtraArgs={'ACL': 'public-read'}
+                file_name
             )
+            # Generate the URL after upload
             return f"https://{self.bucket_name}.s3.amazonaws.com/{file_name}"
         except NoCredentialsError:
             logger.error("S3 credentials not available")

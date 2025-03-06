@@ -11,11 +11,10 @@ import json
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
-
 from dotenv import load_dotenv
-load_dotenv()  # Load environment variables from a .env file
 
-# Import from our modules
+# Load environment variables from a .env file
+load_dotenv()
 
 # Configure logging
 logging.basicConfig(level=logging.INFO,
@@ -27,7 +26,6 @@ CORS(app)  # Enable CORS for all routes
 
 # Constants
 WEBHOOK_URL = os.getenv('WEBHOOK_URL')
-# Replace with your email used for Metana application
 CANDIDATE_EMAIL = os.getenv('CANDIDATE_EMAIL')
 
 # File upload configuration
@@ -47,37 +45,32 @@ s3_service = S3StorageService(
     os.getenv('AWS_SECRET_KEY')
 )
 
-# Fetch Google credentials from file instead of environment
+# Fetch Google credentials from file
 google_credentials_path = "google-credentials.json"
-print(f"Loading credentials from: {google_credentials_path}")
+logger.info(f"Loading credentials from: {google_credentials_path}")
 
-# Read the credentials from the file
 try:
     with open(google_credentials_path, 'r') as f:
         google_credentials = f.read()
 except FileNotFoundError:
+    logger.error(f"Google credentials file not found at: {google_credentials_path}")
     raise ValueError(f"Google credentials file not found at: {google_credentials_path}")
 
-# Check if the credentials are not empty
 if not google_credentials:
-    raise ValueError(
-        "Google credentials file is empty.")
+    logger.error("Google credentials file is empty.")
+    raise ValueError("Google credentials file is empty.")
 
-# Parse the credentials string into a dictionary
 try:
     google_credentials_dict = json.loads(google_credentials)
 except json.JSONDecodeError as e:
+    logger.error(f"Failed to decode Google credentials: {e}")
     raise ValueError(f"Failed to decode Google credentials: {e}")
 
-# Now pass the credentials to GoogleSheetService
 google_sheet_service = GoogleSheetService(
     os.getenv('SPREADSHEET_ID'),
     credentials_info=google_credentials_dict
 )
-# Initialize webhook service
 webhook_service = WebhookService(WEBHOOK_URL, CANDIDATE_EMAIL)
-
-# Initialize email service
 email_service = EmailService(
     os.getenv('EMAIL_HOST', 'smtp.gmail.com'),
     int(os.getenv('EMAIL_PORT', 587)),
@@ -96,6 +89,10 @@ def health_check():
 def submit_application():
     """Handle job application submission"""
     try:
+        # Log incoming request data for debugging
+        logger.info(f"Request form data: {request.form}")
+        logger.info(f"Request files: {request.files}")
+
         # Validate form fields
         name = request.form.get('name')
         email = request.form.get('email')
@@ -103,19 +100,23 @@ def submit_application():
 
         # Validate required fields
         if not all([name, email, phone]):
+            logger.warning("Missing required fields")
             return jsonify({"error": "Missing required fields"}), 400
 
         # Check if file is present
         if 'cv' not in request.files:
+            logger.warning("No file uploaded")
             return jsonify({"error": "No file uploaded"}), 400
 
         cv_file = request.files['cv']
 
         # Validate file
         if cv_file.filename == '':
+            logger.warning("No selected file")
             return jsonify({"error": "No selected file"}), 400
 
         if not file_service.allowed_file(cv_file.filename):
+            logger.warning(f"Invalid file type. Only PDF and DOCX allowed. Received: {cv_file.filename}")
             return jsonify({"error": "Invalid file type. Only PDF and DOCX allowed."}), 400
 
         # Generate unique filename and save
@@ -125,10 +126,17 @@ def submit_application():
         # Upload to S3
         cv_link = s3_service.upload_file(file_path, unique_filename)
         if not cv_link:
+            logger.error("Failed to upload file to S3")
             return jsonify({"error": "Failed to upload file to storage"}), 500
+        logger.info(f"File uploaded to S3: {cv_link}")
 
         # Extract CV information
+        logger.info("Extracting CV information...")
         cv_data = cv_parser.extract_cv_info(file_path)
+        if not cv_data:
+            logger.warning("CV data extraction failed.")
+            return jsonify({"error": "CV parsing failed"}), 500
+        logger.info("CV data extracted successfully")
 
         # Prepare complete application data
         application_data = {
@@ -140,24 +148,23 @@ def submit_application():
         }
 
         # Add to Google Sheet
-        sheet_result = google_sheet_service.add_entry(
-            application_data, cv_link)
+        logger.info("Adding application data to Google Sheet...")
+        sheet_result = google_sheet_service.add_entry(application_data, cv_link)
         if not sheet_result:
             logger.warning("Failed to add data to Google Sheet")
 
         # Send webhook notification
-        webhook_result = webhook_service.send_notification(
-            application_data, status="prod")
+        logger.info("Sending webhook notification...")
+        webhook_result = webhook_service.send_notification(application_data, status="prod")
         if not webhook_result:
             logger.warning("Failed to send webhook notification")
 
         # Queue follow-up email
-        email_service.queue_follow_up_email({
-            'email': email,
-            'name': name
-        })
+        logger.info("Queueing follow-up email...")
+        email_service.queue_follow_up_email({'email': email, 'name': name})
 
         # Prepare response
+        logger.info("Application submission successful!")
         return jsonify({
             "message": "Application submitted successfully!",
             "cv_link": cv_link
@@ -176,9 +183,11 @@ def download_file(filename):
 
         # Security check to prevent directory traversal
         if not os.path.normpath(file_path).startswith(UPLOAD_FOLDER):
+            logger.warning("Invalid file path attempt.")
             return jsonify({"error": "Invalid file path"}), 403
 
         if not os.path.exists(file_path):
+            logger.warning(f"File not found: {filename}")
             return jsonify({"error": "File not found"}), 404
 
         return send_file(file_path, as_attachment=True)
@@ -194,5 +203,5 @@ if __name__ == '__main__':
     email_service.start_scheduler()
 
     # Get port from environment variable (for cloud deployment)
-    port = int(os.getenv('PORT'))
+    port = int(os.getenv('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
