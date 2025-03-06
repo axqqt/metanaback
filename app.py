@@ -47,28 +47,33 @@ s3_service = S3StorageService(
     os.getenv('AWS_SECRET_KEY')
 )
 
-# Fetch GOOGLE_CREDENTIALS from environment
-google_credentials = os.getenv('GOOGLE_CREDENTIALS')
+# Fetch Google credentials from file instead of environment
+google_credentials_path = "google-credentials.json"
+print(f"Loading credentials from: {google_credentials_path}")
 
-# Check if the GOOGLE_CREDENTIALS is set and is not empty
+# Read the credentials from the file
+try:
+    with open(google_credentials_path, 'r') as f:
+        google_credentials = f.read()
+except FileNotFoundError:
+    raise ValueError(f"Google credentials file not found at: {google_credentials_path}")
+
+# Check if the credentials are not empty
 if not google_credentials:
     raise ValueError(
-        "GOOGLE_CREDENTIALS environment variable is not set or is empty.")
+        "Google credentials file is empty.")
 
 # Parse the credentials string into a dictionary
 try:
     google_credentials_dict = json.loads(google_credentials)
 except json.JSONDecodeError as e:
-    raise ValueError(f"Failed to decode GOOGLE_CREDENTIALS: {e}")
+    raise ValueError(f"Failed to decode Google credentials: {e}")
 
 # Now pass the credentials to GoogleSheetService
 google_sheet_service = GoogleSheetService(
     os.getenv('SPREADSHEET_ID'),
-    google_credentials=google_credentials_dict
+    credentials_info=google_credentials_dict
 )
-print(google_credentials)
-
-
 # Initialize webhook service
 webhook_service = WebhookService(WEBHOOK_URL, CANDIDATE_EMAIL)
 
