@@ -1,15 +1,16 @@
-from services.email_service import EmailService
-from services.webhook_service import WebhookService
-from services.sheet_service import GoogleSheetService
-from services.storage_service import S3StorageService
-from services.cv_parser import CVParser
-from services.file_service import FileService
 import os
 import json
 import logging
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from dotenv import load_dotenv
+
+from services.email_service import EmailService
+from services.webhook_service import WebhookService
+from services.sheet_service import GoogleSheetService
+from services.storage_service import S3StorageService
+from services.cv_parser import CVParser
+from services.file_service import FileService
 
 # Load environment variables
 load_dotenv()
@@ -162,15 +163,7 @@ if __name__ == "__main__":
     email_service.start_scheduler()
 
     # Get port from environment variable with a fallback
-    port = os.getenv("PORT", None)
-    if port is None:
-        port = 5000  # Default port if not specified
-    else:
-        try:
-            port = int(port)
-        except ValueError:
-            print(f"Invalid PORT value: {port}. Using default port 5000 instead.")
-            port = 5000
-            
+    port = os.getenv("PORT", 5000)  # Default to 5000 if not specified
+
     print(f"Starting server on port {port}")
     app.run(host="0.0.0.0", port=port)
