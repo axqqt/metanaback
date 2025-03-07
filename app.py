@@ -16,16 +16,26 @@ from services.file_service import FileService
 load_dotenv()
 
 # Configure logging
-logging.basicConfig(level=logging.INFO,
-                    format="%(asctime)s - %(levelname)s - %(message)s")
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
+# Initialize Flask app
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 
-# Constants
+# Constants from environment variables
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 CANDIDATE_EMAIL = os.getenv("CANDIDATE_EMAIL")
+PORT = os.getenv("PORT", 8000)  # Default to 8000 if not set
+
+# Ensure PORT is a valid integer
+try:
+    PORT = int(PORT)
+except ValueError:
+    logger.error(f"Invalid PORT value: {PORT}. Using default 8000.")
+    PORT = 8000
+
+logger.info(f"Running on port {PORT}...")
 
 # File upload configuration
 UPLOAD_FOLDER = "/tmp/uploads"
@@ -60,6 +70,7 @@ google_sheet_service = GoogleSheetService(
 webhook_service = WebhookService(WEBHOOK_URL, CANDIDATE_EMAIL)
 email_service = EmailService()
 
+# Routes
 
 @app.route("/", methods=["GET"])
 def health_check():
@@ -162,9 +173,5 @@ if __name__ == "__main__":
     # Start the email scheduler when app starts
     email_service.start_scheduler()
 
-    # Get port from environment variable with a fallback
-    port = os.getenv("PORT", 8000)  # Default to 5000 if not specified
-    print(f"Up on port {port}")
-
-    print(f"Starting server on port {port}")
-    app.run(host="0.0.0.0", port=port)
+    # Start the Flask application on the specified port
+    app.run(host="0.0.0.0", port=PORT)
