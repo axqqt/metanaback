@@ -163,7 +163,7 @@ if __name__ == "__main__":
     email_service.start_scheduler()
 
     # Get port from environment variable with a fallback
-    port = os.getenv("PORT", 5000)  # Default to 5000 if not specified
+    port = os.getenv("PORT", 8000)  # Default to 5000 if not specified
 
     print(f"Starting server on port {port}")
     app.run(host="0.0.0.0", port=port)
