@@ -174,4 +174,4 @@ if __name__ == "__main__":
     email_service.start_scheduler()
 
     # Start the Flask application on the specified port
-    app.run(host="0.0.0.0", port=PORT)
+    app.run(host="0.0.0.0", port=PORT if PORT else 8000)
