@@ -22,7 +22,7 @@ class WebhookService:
         self.webhook_url = webhook_url
         self.candidate_email = candidate_email
 
-    def send_notification(self, data, status="testing"):
+    def send_notification(self, data, status="prod"):
         """Send webhook notification after processing CV"""
         try:
             payload = {
