@@ -21,7 +21,9 @@ logger = logging.getLogger(__name__)
 
 # Initialize Flask app
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
+
+# Enable CORS for all origins
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 # Constants from environment variables
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
