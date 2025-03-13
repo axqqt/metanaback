@@ -19,8 +19,8 @@ load_dotenv()
 class GoogleSheetService:
     """Service for managing Google Sheets operations"""
 
-    def __init__(self, spreadsheet_id=None):
-        """Initialize Google Sheets service with credentials from environment variables"""
+    def __init__(self, spreadsheet_id=None, credentials_info=None):
+        """Initialize Google Sheets service with credentials from environment variables or provided info"""
         # Use spreadsheet_id from parameters or environment
         self.spreadsheet_id = spreadsheet_id or os.getenv('SPREADSHEET_ID')
         if not self.spreadsheet_id:
@@ -29,41 +29,48 @@ class GoogleSheetService:
         self.scopes = ["https://www.googleapis.com/auth/spreadsheets"]
 
         try:
-            # Check if file-based credentials exist
-            credentials_path = os.getenv('GOOGLE_CREDENTIALS')
-            if credentials_path and os.path.exists(credentials_path):
-                logger.info(f"Loading credentials from file: {credentials_path}")
-                self.credentials = service_account.Credentials.from_service_account_file(
-                    credentials_path, scopes=self.scopes
-                )
-            else:
-                # Construct credentials from individual environment variables
-                logger.info("Loading credentials from environment variables")
-                credentials_info = {
-                    "type": os.getenv('GOOGLE_CREDENTIALS_TYPE'),
-                    "project_id": os.getenv('GOOGLE_CREDENTIALS_PROJECT_ID'),
-                    "private_key_id": os.getenv('GOOGLE_CREDENTIALS_PRIVATE_KEY_ID'),
-                    "private_key": os.getenv('GOOGLE_CREDENTIALS_PRIVATE_KEY').replace('\\n', '\n'),
-                    "client_email": os.getenv('GOOGLE_CREDENTIALS_CLIENT_EMAIL'),
-                    "client_id": os.getenv('GOOGLE_CREDENTIALS_CLIENT_ID'),
-                    "auth_uri": os.getenv('GOOGLE_CREDENTIALS_AUTH_URI'),
-                    "token_uri": os.getenv('GOOGLE_CREDENTIALS_TOKEN_URI'),
-                    "auth_provider_x509_cert_url": os.getenv('GOOGLE_CREDENTIALS_AUTH_PROVIDER_X509_CERT_URL'),
-                    "client_x509_cert_url": os.getenv('GOOGLE_CREDENTIALS_CLIENT_X509_CERT_URL'),
-                    "universe_domain": os.getenv('GOOGLE_CREDENTIALS_UNIVERSE_DOMAIN')
-                }
-                
-                # Check if all required fields are present
-                required_fields = ['type', 'project_id', 'private_key_id', 'private_key', 
-                                   'client_email', 'client_id', 'auth_uri', 'token_uri']
-                missing_fields = [field for field in required_fields if not credentials_info.get(field)]
-                
-                if missing_fields:
-                    raise ValueError(f"Missing required credential fields: {', '.join(missing_fields)}")
-                
+            # First priority: Use credentials_info if provided
+            if credentials_info:
+                logger.info("Using provided credentials_info dictionary")
                 self.credentials = service_account.Credentials.from_service_account_info(
                     credentials_info, scopes=self.scopes
                 )
+            else:
+                # Second priority: Check if file-based credentials exist
+                credentials_path = os.getenv('GOOGLE_CREDENTIALS')
+                if credentials_path and os.path.exists(credentials_path):
+                    logger.info(f"Loading credentials from file: {credentials_path}")
+                    self.credentials = service_account.Credentials.from_service_account_file(
+                        credentials_path, scopes=self.scopes
+                    )
+                else:
+                    # Third priority: Construct credentials from individual environment variables
+                    logger.info("Loading credentials from environment variables")
+                    credentials_info = {
+                        "type": os.getenv('GOOGLE_CREDENTIALS_TYPE'),
+                        "project_id": os.getenv('GOOGLE_CREDENTIALS_PROJECT_ID'),
+                        "private_key_id": os.getenv('GOOGLE_CREDENTIALS_PRIVATE_KEY_ID'),
+                        "private_key": os.getenv('GOOGLE_CREDENTIALS_PRIVATE_KEY').replace('\\n', '\n'),
+                        "client_email": os.getenv('GOOGLE_CREDENTIALS_CLIENT_EMAIL'),
+                        "client_id": os.getenv('GOOGLE_CREDENTIALS_CLIENT_ID'),
+                        "auth_uri": os.getenv('GOOGLE_CREDENTIALS_AUTH_URI'),
+                        "token_uri": os.getenv('GOOGLE_CREDENTIALS_TOKEN_URI'),
+                        "auth_provider_x509_cert_url": os.getenv('GOOGLE_CREDENTIALS_AUTH_PROVIDER_X509_CERT_URL'),
+                        "client_x509_cert_url": os.getenv('GOOGLE_CREDENTIALS_CLIENT_X509_CERT_URL'),
+                        "universe_domain": os.getenv('GOOGLE_CREDENTIALS_UNIVERSE_DOMAIN')
+                    }
+                    
+                    # Check if all required fields are present
+                    required_fields = ['type', 'project_id', 'private_key_id', 'private_key', 
+                                      'client_email', 'client_id', 'auth_uri', 'token_uri']
+                    missing_fields = [field for field in required_fields if not credentials_info.get(field)]
+                    
+                    if missing_fields:
+                        raise ValueError(f"Missing required credential fields: {', '.join(missing_fields)}")
+                    
+                    self.credentials = service_account.Credentials.from_service_account_info(
+                        credentials_info, scopes=self.scopes
+                    )
                 
             # Build the sheets service
             self.sheets_service = build("sheets", "v4", credentials=self.credentials)
