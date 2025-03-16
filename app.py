@@ -69,7 +69,7 @@ except (FileNotFoundError, json.JSONDecodeError) as e:
 google_sheet_service = GoogleSheetService(
     os.getenv("SPREADSHEET_ID"), credentials_info=google_credentials_dict
 )
-webhook_service = WebhookService(WEBHOOK_URL, CANDIDATE_EMAIL)
+
 email_service = EmailService()
 
 # Routes
@@ -90,6 +90,9 @@ def submit_application():
         name = request.form.get("name")
         email = request.form.get("email")
         phone = request.form.get("phone")
+        
+        webhook_service = WebhookService(WEBHOOK_URL, email)
+        
 
         if not all([name, email, phone]):
             logger.warning("Missing required fields")
